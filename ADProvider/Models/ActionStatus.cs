@@ -10,6 +10,7 @@ namespace ADProvider.Models
     {
         SendingADRequest,
         Loading,
+        Processing,
         Done
     }
 }

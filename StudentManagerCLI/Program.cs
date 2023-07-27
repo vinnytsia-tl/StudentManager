@@ -23,6 +23,9 @@ namespace StudentManagerCLI
 
             sm.LoadADContexts(callBack);
             sm.LoadFromAD(callBack);
+            //var x = sm.ValidateUsersName(callBack);
+            //sm.FixUserValidateFails(x, callBack);
+            return;
         }
 
 //        public void SaveToFile(string file)

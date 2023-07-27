@@ -32,6 +32,15 @@ namespace ADProvider.Models
             LastPasswordSet = user.LastPasswordSet;
         }
 
+        public void UpdateGroup(UserPrincipal user, string group)
+        {
+            DirectoryEntry de = user.GetUnderlyingObject() as DirectoryEntry;
+
+            Group = group;
+            de.Properties["department"].Value = group;
+            user.Save();
+        }
+
         public UserFullName NameUA { get; private set; }
         public UserFullName NameEN { get; private set; }
         public string SamAccountName { get; set; }
