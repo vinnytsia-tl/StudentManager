@@ -18,6 +18,7 @@ namespace ADProvider.Models
             NameUA = nameUA;
             NameEN = Transliteration.Transliterate(NameUA);
             Group = group;
+            ZnzExist = false;
         }
         public User(UserPrincipal user)
         {
@@ -68,5 +69,45 @@ namespace ADProvider.Models
             };
         }
 
+        public void SetZnzData(UserFullName nameUA, string group)
+        {
+            ZnzNameUA = nameUA;
+            ZnzGroup = group;
+            ZnzExist = true;
+
+            if (ZnzGroup == Group && ZnzNameUA == NameUA)
+            {
+                ZnzStatus = Loaded ? ZnzSyncStatus.InSync : ZnzSyncStatus.Create;
+                return;
+            }
+
+            string groupName = Group.Split('-')[0];
+            int groupNumber = int.Parse(Group.Split('-')[1][0].ToString());
+
+            string znzGroupName = ZnzGroup.Split('-')[0];
+            int znzGroupNumber = int.Parse(ZnzGroup.Split('-')[1][0].ToString());
+
+            if (ZnzNameUA != NameUA)
+                ZnzStatus |= ZnzSyncStatus.NameFix;
+
+            if (znzGroupNumber - groupNumber == 1)
+                ZnzStatus |= ZnzSyncStatus.GroupNext;
+
+            if (znzGroupName == groupName && ((ZnzStatus & ZnzSyncStatus.GroupNext) != 0))
+                return;
+                 
+            if (znzGroupName != groupName && ((ZnzStatus & ZnzSyncStatus.GroupNext) != 0))
+            {
+                ZnzStatus |= ZnzSyncStatus.GroupUpdate;
+                return;
+            }
+
+            throw new ArgumentException($"Strange group update {Group} -> {ZnzGroup}");
+        }
+
+        public UserFullName ZnzNameUA { get; private set; }
+        public string ZnzGroup { get; private set; }
+        public bool ZnzExist { get; private set; }
+        public ZnzSyncStatus ZnzStatus { get; private set; }
     }
 }

@@ -35,6 +35,7 @@
     <SignAssembly>false</SignAssembly>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.DirectoryServices" />
@@ -58,6 +59,7 @@
     <Compile Include="Models\User.cs" />
     <Compile Include="Models\UserFullName.cs" />
     <Compile Include="Models\UserInfo.cs" />
+    <Compile Include="Models\ZnzSyncStatus.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StudentManager.cs" />
     <Compile Include="Transliteration.cs" />

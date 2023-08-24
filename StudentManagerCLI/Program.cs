@@ -1,6 +1,7 @@
 ﻿using ADProvider;
 using ADProvider.Models;
 using System;
+using System.Linq;
 using System.Text;
 
 namespace StudentManagerCLI
@@ -21,8 +22,10 @@ namespace StudentManagerCLI
             ADConfig config = ADConfig.LoadConfig();
             StudentManager sm = new StudentManager(config);
 
+
             sm.LoadADContexts(callBack);
             sm.LoadFromAD(callBack);
+            sm.SyncWithZnz(@"C:\znz2023.txt");
             //var x = sm.ValidateUsersName(callBack);
             //sm.FixUserValidateFails(x, callBack);
             return;
