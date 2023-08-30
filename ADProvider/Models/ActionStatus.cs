@@ -11,6 +11,8 @@ namespace ADProvider.Models
         SendingADRequest,
         Loading,
         Processing,
+        ProcessingZnzSync,
+        ProcessingGraduate,
         Done
     }
 }

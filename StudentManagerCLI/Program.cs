@@ -25,8 +25,37 @@ namespace StudentManagerCLI
 
             sm.LoadADContexts(callBack);
             sm.LoadFromAD(callBack);
-            sm.SyncWithZnz(@"C:\znz2023.txt");
-            //var x = sm.ValidateUsersName(callBack);
+            var x = sm.SyncWithZnz(@"C:\znz2023.txt", callBack);
+
+            foreach (var y in x)
+            {
+                if (y.znzUserStatus == StudentManager.ProcessZnzUserStatus.AddX)
+                    Console.WriteLine($"{y.znzUserStatus} {y.user.NameUA} {y.user.ZnzNameUA}");
+                if (y.znzUserStatus == StudentManager.ProcessZnzUserStatus.Add1)
+                    Console.WriteLine($"{y.znzUserStatus} {y.user.NameUA} {y.user.ZnzNameUA}");
+                if (y.znzUserStatus == StudentManager.ProcessZnzUserStatus.Partial)
+                    Console.WriteLine($"{y.znzUserStatus} {y.user.NameUA} {y.user.ZnzNameUA}");
+
+                
+            }
+            
+            var data = x.Select((u) => $"{u.user.NameUA};{u.user.Group};{u.znzUserStatus};{u.user.ZnzStatus};{string.Join("; ", u.znzUserFields)}");
+            System.IO.File.WriteAllLines("sync.csv", data);
+           
+            var g = sm.MoveToGraduate(callBack);
+            data = g.Select((u) => $"{u.NameUA};{u.Group};Graduate");
+            System.IO.File.AppendAllLines("sync.csv", data);
+
+
+            foreach (var y in g)
+            {
+                Console.WriteLine($"Graduate: {y.NameUA} {y.Group}");
+            }
+
+            sm.Commit(callBack);
+            var res = sm.GetStudents().Select((u) => $"{u.NameUA};{u.NameEN};{u.DisplayName};{u.Group};{u.SamAccountName};{u.Password};{u.ZnzStatus}");
+            System.IO.File.AppendAllLines("import.csv", res);
+
             //sm.FixUserValidateFails(x, callBack);
             return;
         }

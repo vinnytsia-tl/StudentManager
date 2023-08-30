@@ -96,18 +96,16 @@ namespace ADProvider
             // Maybe new user
             if (groupNumber == 1)
             {
-                var user = new User(znzUser, group);
+                var user = AddStudent(znzUser, group);
                 user.SetZnzData(znzUser, group);
-                students.Add(user);
                 return (ProcessZnzUserStatus.Add1, user);
             }
 
             var existingPartialStudents = students.FindAll((u) => u.NameUA.PartialEqual(znzUser));
             if (existingPartialStudents.Count == 0)
             {
-                var user = new User(znzUser, group);
+                var user = AddStudent(znzUser, group);
                 user.SetZnzData(znzUser, group);
-                students.Add(user);
                 return (ProcessZnzUserStatus.AddX, user);
             }
 
@@ -115,6 +113,9 @@ namespace ADProvider
                 return (ProcessZnzUserStatus.Partial, null);
 
             var partialStudents = existingPartialStudents.First();
+            if (partialStudents.ZnzExist)
+                return (ProcessZnzUserStatus.Partial, null);
+
             partialStudents.SetZnzData(znzUser, group);
             return (ProcessZnzUserStatus.Exist, partialStudents);
         }
@@ -126,14 +127,15 @@ namespace ADProvider
             public User user;
         }
 
-        public List<ZnzSyncResults> SyncWithZnz(string filePath)
+        public List<ZnzSyncResults> SyncWithZnz(string filePath, ProgressCallBack progress = null)
         {
-            var encoding = Encoding.GetEncoding(1251);
-            //var encoding = Encoding.UTF8;
+            progress?.Invoke(ActionStatus.ProcessingZnzSync, 0);
 
             var results = new List<ZnzSyncResults>();
 
-            using (TextFieldParser parser = new TextFieldParser(filePath, encoding))
+            var lineCount = File.ReadLines(filePath).Count();
+
+            using (TextFieldParser parser = new TextFieldParser(filePath))
             {
                 parser.TextFieldType = FieldType.Delimited;
                 parser.SetDelimiters(",");
@@ -146,23 +148,52 @@ namespace ADProvider
                 while (!parser.EndOfData)
                 {
                     string[] znzUserFields = parser.ReadFields();
-                    //total++;
 
                     var res = processZnzUserFields(znzUserFields);
                     if (res.status == ProcessZnzUserStatus.Partial)
                         znzUserFieldsForReload.Add(znzUserFields);
                     else
                         results.Add(new ZnzSyncResults() { user = res.user, znzUserFields = znzUserFields, znzUserStatus = res.status });
+
+                    progress?.Invoke(ActionStatus.ProcessingZnzSync, 1.0 * parser.LineNumber / lineCount);
                 }
 
-                foreach (var znzUserFields in znzUserFieldsForReload)
+                if (znzUserFieldsForReload.Count > 0)
                 {
-                    var res = processZnzUserFields(znzUserFields);
-                    results.Add(new ZnzSyncResults() { user = res.user, znzUserFields = znzUserFields, znzUserStatus = res.status });
+                    progress?.Invoke(ActionStatus.ProcessingZnzSync, 0);
+                    int lineNumber = 0;
+
+                    foreach (var znzUserFields in znzUserFieldsForReload)
+                    {
+                        lineNumber++;
+                        var res = processZnzUserFields(znzUserFields, true);
+                        results.Add(new ZnzSyncResults() { user = res.user, znzUserFields = znzUserFields, znzUserStatus = res.status });
+
+                        progress?.Invoke(ActionStatus.ProcessingZnzSync, 1.0 * lineNumber / znzUserFieldsForReload.Count);
+                    }
                 }
             }
 
-            //Console.WriteLine($"Total: {total}\nExists: {exists}\nToAdd1: {toadd1}\nToAddX: {toaddx}\nPartial: {partial}");
+            return results;
+        }
+
+        public List<User> MoveToGraduate(ProgressCallBack progress = null)
+        {
+            progress?.Invoke(ActionStatus.ProcessingGraduate, 0);
+
+            var results = new List<User>();
+            for(int i = 0; i < students.Count; i++)
+            {
+                var st = students[i];
+                if (st.Loaded && !st.ZnzExist)
+                {
+                    results.Add(st.DeepClone());
+                    st.DeferredUpdateGroup("graduate");
+                }
+
+                progress?.Invoke(ActionStatus.ProcessingGraduate, 1.0 * i / students.Count);
+            }
+
             return results;
         }
 
@@ -268,17 +299,30 @@ namespace ADProvider
             progress?.Invoke(ActionStatus.Done, 1);
         }
 
-        public void Commit()
+        public void Commit(ProgressCallBack progress = null)
         {
-            throw new Exception("Not implemented");
+            progress?.Invoke(ActionStatus.Processing, 0);
 
-            foreach (var student in students)
+            for (int idx = 0; idx < students.Count; idx++)
             {
+                var student = students[idx];
+
                 UserPrincipal adStudent = null;
                 if (student.Loaded)
                 {
                     adStudent = UserPrincipal.FindByIdentity(studentsContainerPrincipalContext, IdentityType.SamAccountName, student.SamAccountName);
                 }
+                else
+                {
+                    adStudent = new UserPrincipal(studentsContainerPrincipalContext);
+                    adStudent.SamAccountName = student.SamAccountName;
+                    adStudent.UserPrincipalName = student.SamAccountName + "@" + studentsContainerPrincipalContext.Name;
+                }
+
+                adStudent.Enabled = true;
+
+                if (student.ZnzNameUA != null)
+                    student.NameFromZnz();
 
                 adStudent.GivenName = student.NameUA.FirstName;
                 adStudent.MiddleName = student.NameUA.MiddleName;
@@ -298,55 +342,55 @@ namespace ADProvider
                 {
                     adStudent.Name = student.Name;
                 }
-            }
-        }
 
-        //        public void CreateOrUpdateDomain(PrincipalContext context, GroupPrincipal groupPrincipal = null)
-        //        {
-        //            int done = 0;
-        //
-        //            foreach (var st in students)
-        //            {
-        //                UserPrincipal up = new UserPrincipal(context);
-        //
-        //                up.SamAccountName = st.SamAccountName;
-        //                up.UserPrincipalName = st.SamAccountName + "@" + context.Name;
-        //
-        //                up.GivenName = st.NameUA.FirstName;
-        //                up.MiddleName = st.NameUA.MiddleName;
-        //                up.Surname = st.NameUA.SurName;
-        //
-        //                up.DisplayName = $"{st.NameUA.SurName} {st.NameUA.FirstName[0]}. {st.NameUA.MiddleName[0]}.";
-        //                up.Name = $"{st.NameUA.SurName} {st.NameUA.FirstName} {st.NameUA.MiddleName} ({st.Group})";
-        //
-        //                up.Enabled = true;
-        //                up.SetPassword(st.Password);
-        //                up.ExpirePasswordNow();
-        //                up.Save();
-        //
-        //                DirectoryEntry de = up.GetUnderlyingObject() as DirectoryEntry;
-        //                if (de != null)
-        //                {
-        //                    var initials = de.Properties["initials"];
-        //                    initials.Add($"{st.NameUA.FirstName[0]}. {st.NameUA.MiddleName[0]}.");
-        //
-        //                    var department = de.Properties["department"];
-        //                    department.Add(st.Group);
-        //                }
-        //
-        //                up.Save();
-        //
-        //                if (groupPrincipal != null)
-        //                {
-        //                    groupPrincipal.Members.Add(up);
-        //                    groupPrincipal.Save();
-        //                }
-        //
-        //                done++;
-        //
-        //                Console.WriteLine($"INFO: Added {up.Name}({up.SamAccountName}) user. Total: {done}/{students.Count}");
-        //            }
-        //
-        //        }
+                if (student.Group == "graduate")
+                {
+                    adStudent.Enabled = false;
+                }
+
+                if (student.Loaded)
+                {
+                    if (student.LastPasswordSet == null)
+                    {
+                        student.Password = Helpers.GetPassword(true);
+                        adStudent.SetPassword(student.Password);
+                        adStudent.ExpirePasswordNow();
+                    }
+
+                }
+                else
+                {
+                    student.Password = Helpers.GetPassword(true);
+                    adStudent.SetPassword(student.Password);
+                    adStudent.ExpirePasswordNow();
+                }
+
+                adStudent.Save();
+                
+                DirectoryEntry de = adStudent.GetUnderlyingObject() as DirectoryEntry;
+                if (de != null)
+                {
+                    var initials = de.Properties["initials"];
+                    initials.Clear();
+                    initials.Add($"{student.NameUA.FirstName[0]}. {student.NameUA.MiddleName[0]}.");
+                
+                    var department = de.Properties["department"];
+                    department.Clear();
+                    department.Add(student.Group);
+                }
+
+                adStudent.Save();
+
+                if (!student.Loaded)
+                {
+                    studentGroupContext.Members.Add(adStudent);
+                    studentGroupContext.Save();
+                }
+
+                progress?.Invoke(ActionStatus.Processing, 1.0 * idx / students.Count);
+            }
+
+            progress?.Invoke(ActionStatus.Done, 1);
+        }
     }
 }

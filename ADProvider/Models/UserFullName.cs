@@ -4,6 +4,7 @@ using System.Linq;
 
 namespace ADProvider.Models
 {
+    [Serializable]
     public class UserFullName
     {
         public UserFullName(string firstName, string middleName, string surName)
@@ -39,13 +40,22 @@ namespace ADProvider.Models
 
             return cnt.Sum((kv) => Math.Abs(kv.Value)) == 1;
         }
-        static public bool operator ==(UserFullName first, UserFullName second) =>
-            (first.FirstName == second.FirstName) &&
+        static public bool operator ==(UserFullName first, UserFullName second)
+        {
+            if ((object)first != null && (object)second == null) return false;
+            if ((object)first == null && (object)second != null) return false;
+            if ((object)first == null && (object)second == null) return true;
+            if ((first.FirstName == second.FirstName) &&
             (first.MiddleName == second.MiddleName) &&
-            (first.SurName == second.SurName);
-        static public bool operator !=(UserFullName first, UserFullName second) =>
-            (first.FirstName != second.FirstName) ||
-            (first.MiddleName != second.MiddleName) ||
-            (first.SurName != second.SurName);
+            (first.SurName == second.SurName))
+                return true;
+
+            return false;
+        }
+        static public bool operator !=(UserFullName first, UserFullName second)
+        {
+            return !(first == second);
+        }
+           
     }
 }

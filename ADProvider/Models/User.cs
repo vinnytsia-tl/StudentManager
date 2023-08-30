@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
+using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ADProvider.Models
 {
+    [Serializable]
     public class User
     {
         public User(string firstName, string middleName, string surname, string group) :
@@ -40,6 +43,11 @@ namespace ADProvider.Models
             Group = group;
             de.Properties["department"].Value = group;
             user.Save();
+        }
+
+        public void DeferredUpdateGroup(string group)
+        {
+            Group = group;
         }
 
         public UserFullName NameUA { get; private set; }
@@ -109,5 +117,24 @@ namespace ADProvider.Models
         public string ZnzGroup { get; private set; }
         public bool ZnzExist { get; private set; }
         public ZnzSyncStatus ZnzStatus { get; private set; }
+
+        public void NameFromZnz()
+        {
+            NameUA = ZnzNameUA;
+            Group = ZnzGroup;
+            NameEN = Transliteration.Transliterate(NameUA);
+        }
+
+        public User DeepClone()
+        {
+            using (var ms = new MemoryStream())
+            {
+                var formatter = new BinaryFormatter();
+                formatter.Serialize(ms, this);
+                ms.Position = 0;
+
+                return (User)formatter.Deserialize(ms);
+            }
+        }
     }
 }
