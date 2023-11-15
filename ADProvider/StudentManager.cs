@@ -92,21 +92,23 @@ namespace ADProvider
                 return (ProcessZnzUserStatus.Exist, existingStudent);
             }
 
-            // if (existingStudents.Count == 0)
-            // Maybe new user
-            if (groupNumber == 1)
-            {
-                var user = AddStudent(znzUser, group);
-                user.SetZnzData(znzUser, group);
-                return (ProcessZnzUserStatus.Add1, user);
-            }
-
             var existingPartialStudents = students.FindAll((u) => u.NameUA.PartialEqual(znzUser));
             if (existingPartialStudents.Count == 0)
             {
-                var user = AddStudent(znzUser, group);
-                user.SetZnzData(znzUser, group);
-                return (ProcessZnzUserStatus.AddX, user);
+                // if (existingStudents.Count == 0)
+                // Maybe new user
+                if (groupNumber == 1)
+                {
+                    var user = AddStudent(znzUser, group);
+                    user.SetZnzData(znzUser, group);
+                    return (ProcessZnzUserStatus.Add1, user);
+                }
+                else
+                {
+                    var user = AddStudent(znzUser, group);
+                    user.SetZnzData(znzUser, group);
+                    return (ProcessZnzUserStatus.AddX, user);
+                }
             }
 
             if (!checkPartial || existingPartialStudents.Count > 1)
@@ -348,7 +350,7 @@ namespace ADProvider
                     adStudent.Enabled = false;
                 }
 
-                if (student.Loaded)
+                /*if (student.Loaded)
                 {
                     if (student.LastPasswordSet == null)
                     {
@@ -359,6 +361,12 @@ namespace ADProvider
 
                 }
                 else
+                {
+                    student.Password = Helpers.GetPassword(true);
+                    adStudent.SetPassword(student.Password);
+                    adStudent.ExpirePasswordNow();
+                }*/
+                if (student.ZnzStatus == ZnzSyncStatus.Create)
                 {
                     student.Password = Helpers.GetPassword(true);
                     adStudent.SetPassword(student.Password);
@@ -383,8 +391,8 @@ namespace ADProvider
 
                 if (!student.Loaded)
                 {
-                    studentGroupContext.Members.Add(adStudent);
-                    studentGroupContext.Save();
+                   // studentGroupContext.Members.Add(adStudent);
+                   // studentGroupContext.Save();
                 }
 
                 progress?.Invoke(ActionStatus.Processing, 1.0 * idx / students.Count);
