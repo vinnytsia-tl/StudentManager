@@ -101,6 +101,9 @@ namespace ADProvider.Models
             if (znzGroupNumber - groupNumber == 1)
                 ZnzStatus |= ZnzSyncStatus.GroupNext;
 
+            if (znzGroupName == groupName && ((ZnzStatus & ZnzSyncStatus.NameFix) != 0))
+                return;
+
             if (znzGroupName == groupName && ((ZnzStatus & ZnzSyncStatus.GroupNext) != 0))
                 return;
                  
@@ -110,7 +113,8 @@ namespace ADProvider.Models
                 return;
             }
 
-            throw new ArgumentException($"Strange group update {Group} -> {ZnzGroup}");
+            //; throw new ArgumentException
+            Console.WriteLine($"User {nameUA} Strange group update {Group} -> {ZnzGroup}");
         }
 
         public UserFullName ZnzNameUA { get; private set; }
