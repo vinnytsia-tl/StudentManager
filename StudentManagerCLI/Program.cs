@@ -30,13 +30,13 @@ namespace StudentManagerCLI
             foreach (var y in x)
             {
                 if (y.znzUserStatus == StudentManager.ProcessZnzUserStatus.AddX)
-                    Console.WriteLine($"{y.znzUserStatus} {y.user.NameUA} {y.user.ZnzNameUA}");
+                    Console.WriteLine($"{y.znzUserStatus} {y.user.NameUA} {y.user.ZnzNameUA} {y.user.Group}");
                 if (y.znzUserStatus == StudentManager.ProcessZnzUserStatus.Add1)
-                    Console.WriteLine($"{y.znzUserStatus} {y.user.NameUA} {y.user.ZnzNameUA}");
+                    Console.WriteLine($"{y.znzUserStatus} {y.user.NameUA} {y.user.ZnzNameUA} {y.user.Group}");
                 if (y.znzUserStatus == StudentManager.ProcessZnzUserStatus.Partial)
-                    Console.WriteLine($"{y.znzUserStatus} {y.user.NameUA} {y.user.ZnzNameUA}");
-
-                
+                    Console.WriteLine($"{y.znzUserStatus} {y.user.NameUA} {y.user.ZnzNameUA} {y.user.Group}");
+                if ((y.user.ZnzStatus & ZnzSyncStatus.NameFix) == ZnzSyncStatus.NameFix)
+                    Console.WriteLine($"{y.znzUserStatus}:NameFix {y.user.NameUA} {y.user.ZnzNameUA} {y.user.Group}");
             }
             
             var data = x.Select((u) => $"{u.user.NameUA};{u.user.Group};{u.znzUserStatus};{u.user.ZnzStatus};{string.Join("; ", u.znzUserFields)}");
@@ -46,7 +46,7 @@ namespace StudentManagerCLI
             data = g.Select((u) => $"{u.NameUA};{u.Group};Graduate");
             System.IO.File.AppendAllLines("sync.csv", data);
 
-
+     
             foreach (var y in g)
             {
                 Console.WriteLine($"Graduate: {y.NameUA} {y.Group}");
