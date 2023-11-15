@@ -39,8 +39,9 @@ namespace ADProvider
 
         private static string GetSimplePassword()
         {
-            char l1 = (char)random.Next('a', 'z' + 1);
-            char l2 = (char)random.Next('A', 'Z' + 1);
+            // a,b,c,d,e,f,g,h
+            char l1 = (char)random.Next('a', 'h' + 1);
+            char l2 = (char)random.Next('A', 'H' + 1);
             char d = random.Next(2) == 0 ? '#' : '@';
             int code = random.Next(10000, 99999);
             return $"{l1}{l2}{d}{code}";
